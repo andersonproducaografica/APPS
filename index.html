@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetRide - Esboço de Agendamento</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="card">
+        <h1>Agendamento de Corrida para PET</h1>
+        <p class="subtitle">
+          Informe os dados da viagem para validar disponibilidade do motorista e receber uma cotação estimada.
+        </p>
+
+        <form id="booking-form">
+          <label for="origin">Endereço de origem</label>
+          <input id="origin" name="origin" type="text" placeholder="Ex: Rua das Flores, 120 - Centro" required />
+
+          <label for="destination">Endereço de destino</label>
+          <input id="destination" name="destination" type="text" placeholder="Ex: Clínica Vet Amigo, Av. Central, 530" required />
+
+          <div class="grid-2">
+            <div>
+              <label for="date">Data</label>
+              <input id="date" name="date" type="date" required />
+            </div>
+            <div>
+              <label for="time">Hora</label>
+              <input id="time" name="time" type="time" required />
+            </div>
+          </div>
+
+          <label for="pets">Quantidade e especificação dos pets</label>
+          <textarea
+            id="pets"
+            name="pets"
+            rows="4"
+            placeholder="Ex: 2 cães de porte pequeno, 1 gato em caixa de transporte"
+            required
+          ></textarea>
+
+          <fieldset class="trip-type">
+            <legend>A viagem será:</legend>
+            <label><input type="radio" name="roundTrip" value="nao" checked /> Só ida</label>
+            <label><input type="radio" name="roundTrip" value="sim" /> Ida e volta</label>
+          </fieldset>
+
+          <button type="submit">Verificar disponibilidade e cotação</button>
+        </form>
+      </section>
+
+      <section class="card result hidden" id="result"></section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

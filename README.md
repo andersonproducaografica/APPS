@@ -11,7 +11,12 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
   - Descrição com quantidade/especificação dos pets
   - Opção de ida ou ida e volta
 - Validação básica de disponibilidade do motorista (regra simulada)
-- Cotação estimada com base em distância simulada, quantidade de pets e tipo de viagem
+- **Cálculo de quilometragem real** via APIs públicas:
+  - Geocodificação: OpenStreetMap Nominatim
+  - Roteamento: OSRM
+- Cotação com regras:
+  - **R$ 3,50 por km**
+  - **Valor mínimo de corrida: R$ 35,00**
 
 ## Como rodar
 
@@ -21,6 +26,8 @@ python3 -m http.server 8000
 
 Depois abra: <http://localhost:8000>
 
-## Observação
+## Observações importantes
 
-As regras de disponibilidade e cotação neste esboço são **demonstrativas**.
+- Este protótipo depende de internet para consultar a quilometragem real.
+- As APIs públicas podem aplicar limite de uso.
+- A disponibilidade do motorista ainda usa uma regra demonstrativa local.

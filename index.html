@@ -14,7 +14,9 @@
         </header>
 
         <h1>Agendamento de Corrida para PET</h1>
-        <p class="subtitle">Informe os dados da viagem para validar disponibilidade do motorista e receber uma cotação estimada.</p>
+        <p class="subtitle">
+          Informe os dados da viagem para validar disponibilidade do motorista e receber uma cotação estimada.
+        </p>
 
         <form id="booking-form">
           <label for="fullName">Nome completo</label>
@@ -49,25 +51,36 @@
             </div>
           </div>
 
-          <div class="grid-2">
-            <div>
-              <label for="date">Data</label>
-              <input id="date" name="date" type="date" required />
-            </div>
-            <div>
-              <label for="time">Hora</label>
-              <input id="time" name="time" type="time" required />
-            </div>
-          </div>
-
-          <label for="pets">Observações da corrida</label>
-          <textarea id="pets" name="pets" rows="4" placeholder="Ex: 2 cães de porte pequeno, 1 gato em caixa de transporte"></textarea>
-
           <fieldset class="trip-type">
             <legend>A viagem será:</legend>
             <label><input type="radio" name="roundTrip" value="nao" checked /> Só ida</label>
             <label><input type="radio" name="roundTrip" value="sim" /> Ida e volta</label>
           </fieldset>
+
+          <div class="grid-2">
+            <div>
+              <label for="date">Data (ida)</label>
+              <input id="date" name="date" type="date" required />
+            </div>
+            <div>
+              <label for="time">Hora (ida)</label>
+              <input id="time" name="time" type="time" required />
+            </div>
+          </div>
+
+          <div id="return-schedule" class="grid-2 hidden">
+            <div>
+              <label for="returnDate">Data (volta)</label>
+              <input id="returnDate" name="returnDate" type="date" />
+            </div>
+            <div>
+              <label for="returnTime">Hora (volta)</label>
+              <input id="returnTime" name="returnTime" type="time" />
+            </div>
+          </div>
+
+          <label for="pets">Observações da corrida</label>
+          <textarea id="pets" name="pets" rows="4" placeholder="Ex: 2 cães de porte pequeno, 1 gato em caixa de transporte"></textarea>
 
           <button type="submit">Verificar disponibilidade e cotação</button>
         </form>

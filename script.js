@@ -68,17 +68,14 @@ async function lookupZipInfo(zip) {
   };
 }
 
-function buildAddressQueries(street, number, zip, zipInfo) {
+function buildAddressQueries(street, zip, zipInfo) {
   const cleanZip = normalizeZip(zip);
   const cityState = zipInfo?.city && zipInfo?.state ? `${zipInfo.city} ${zipInfo.state}` : '';
   const neighborhood = zipInfo?.neighborhood || '';
 
   return [
-    `${street}, ${number}, ${cleanZip}, Brasil`,
-    `${street}, ${number}, ${neighborhood}, ${cityState}, Brasil`,
-    `${street}, ${number}, ${cityState}, Brasil`,
-    `${street}, ${number}, Brasil`,
     `${street}, ${cleanZip}, Brasil`,
+    `${street}, ${neighborhood}, ${cityState}, Brasil`,
     `${street}, ${cityState}, Brasil`,
     `${street}, Brasil`
   ].filter(Boolean);
@@ -153,9 +150,9 @@ function setupAddressAutocomplete(inputEl, datalistEl) {
   });
 }
 
-async function geocodeAddressWithFallback(street, number, zip) {
+async function geocodeAddressWithFallback(street, zip) {
   const zipInfo = await lookupZipInfo(zip);
-  const queries = buildAddressQueries(street, number, zip, zipInfo);
+  const queries = buildAddressQueries(street, zip, zipInfo);
 
   for (const query of queries) {
     const nominatimResult = await geocodeByNominatim(query);
@@ -165,7 +162,7 @@ async function geocodeAddressWithFallback(street, number, zip) {
     if (photonResult) return photonResult;
   }
 
-  throw new Error(`Não foi possível localizar o endereço: ${street}, ${number}, ${zip}.`);
+  throw new Error(`Não foi possível localizar o endereço: ${street}, ${zip}.`);
 }
 
 function updateDateAndTimeLimits() {
@@ -204,8 +201,8 @@ function validateSchedule(dateValue, timeValue) {
 }
 
 async function calculateRouteDistanceKm(origin, destination) {
-  const originPoint = await geocodeAddressWithFallback(origin.street, origin.number, origin.zip);
-  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.number, destination.zip);
+  const originPoint = await geocodeAddressWithFallback(origin.street, origin.zip);
+  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.zip);
 
   const routeUrl = new URL(
     `https://router.project-osrm.org/route/v1/driving/${originPoint.lon},${originPoint.lat};${destinationPoint.lon},${destinationPoint.lat}`
@@ -243,17 +240,15 @@ form.addEventListener('submit', async (event) => {
   const whatsapp = formData.get('whatsapp').trim();
   const origin = {
     street: formData.get('originStreet').trim(),
-    number: formData.get('originNumber').trim(),
     zip: formData.get('originZip').trim()
   };
   const destination = {
     street: formData.get('destinationStreet').trim(),
-    number: formData.get('destinationNumber').trim(),
     zip: formData.get('destinationZip').trim()
   };
   const date = formData.get('date');
   const time = formData.get('time');
-  const petsDescription = formData.get('pets').trim();
+  const rideNotes = formData.get('pets').trim();
   const roundTrip = formData.get('roundTrip') === 'sim';
 
   showResult(`
@@ -264,7 +259,7 @@ form.addEventListener('submit', async (event) => {
   try {
     validateSchedule(date, time);
 
-    const petCount = parsePetCount(petsDescription);
+    const petCount = rideNotes ? parsePetCount(rideNotes) : 1;
     const oneWayDistanceKm = await calculateRouteDistanceKm(origin, destination);
     const chargedDistanceKm = roundTrip ? oneWayDistanceKm * 2 : oneWayDistanceKm;
 
@@ -274,19 +269,20 @@ form.addEventListener('submit', async (event) => {
     const estimatedFare = Math.max(MIN_FARE, distanceFare + petSurcharge + roundTripSurcharge);
 
     const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
-    const originText = `${origin.street}, ${origin.number} - CEP ${origin.zip}`;
-    const destinationText = `${destination.street}, ${destination.number} - CEP ${destination.zip}`;
+    const originText = `${origin.street} - CEP ${origin.zip}`;
+    const destinationText = `${destination.street} - CEP ${destination.zip}`;
 
     const whatsappMessage = [
       '*Olá,*',
       `Me chamo, *${fullName}*.` ,
-      'Quero agendar uma corrida!!',
+      '*Gostaria de agendar uma corrida*',
       '',
       `Para: *${date} às ${time}*`,
       `Origem: ${originText}`,
       `Destino: ${destinationText}`,
       `Trecho: ${tripLabel}`,
       `Qtd. de Pets: ${petCount}`,
+      `Observações da corrida: ${rideNotes || 'Não informado'}`,
       `Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`
     ].join('\n');
 
@@ -301,6 +297,7 @@ form.addEventListener('submit', async (event) => {
         <li><strong>Trecho:</strong> ${tripLabel}</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
         <li><strong>Qtd. de Pets:</strong> ${petCount}</li>
+        <li><strong>Observações da corrida:</strong> ${rideNotes || 'Não informado'}</li>
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Agendar corrida</a>

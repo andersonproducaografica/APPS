@@ -93,6 +93,17 @@ textarea:focus {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.grid-3 {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.section-title {
+  margin: 0.3rem 0 0.4rem;
+  font-size: 1rem;
+}
+
 .trip-type {
   border: 1px solid #d0d8eb;
   border-radius: 10px;

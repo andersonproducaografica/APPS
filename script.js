@@ -7,9 +7,6 @@ const PRICE_PER_KM = 3.5;
 const MIN_FARE = 35;
 const ROUND_TRIP_SURCHARGE = 20;
 
-// Substitua por sua chave válida do Google Maps Platform.
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDjnUQIzufafzT6Jeqh9QkvpHCjYHaychY';
-
 function parsePetCount(text) {
   const numbers = text.match(/\d+/g);
   if (!numbers) return 1;
@@ -40,9 +37,95 @@ function normalizeZip(zip) {
   return zip.replace(/\D/g, '');
 }
 
-function buildAddress(street, number, zip) {
+async function fetchJson(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function lookupZipInfo(zip) {
   const cleanZip = normalizeZip(zip);
-  return `${street}, ${number}, ${cleanZip}, Brasil`;
+  if (cleanZip.length !== 8) return null;
+  const data = await fetchJson(`https://viacep.com.br/ws/${cleanZip}/json/`);
+  if (!data || data.erro) return null;
+  return {
+    street: data.logradouro || '',
+    neighborhood: data.bairro || '',
+    city: data.localidade || '',
+    state: data.uf || ''
+  };
+}
+
+function buildAddressQueries(street, number, zip, zipInfo) {
+  const cleanZip = normalizeZip(zip);
+  const cityState = zipInfo?.city && zipInfo?.state ? `${zipInfo.city} ${zipInfo.state}` : '';
+  const neighborhood = zipInfo?.neighborhood || '';
+
+  return [
+    `${street}, ${number}, ${cleanZip}, Brasil`,
+    `${street}, ${number}, ${neighborhood}, ${cityState}, Brasil`,
+    `${street}, ${number}, ${cityState}, Brasil`,
+    `${street}, ${number}, Brasil`,
+    `${street}, ${cleanZip}, Brasil`,
+    `${street}, ${cityState}, Brasil`,
+    `${street}, Brasil`
+  ].filter(Boolean);
+}
+
+async function geocodeByNominatim(query) {
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('q', query);
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('limit', '1');
+  url.searchParams.set('countrycodes', 'br');
+  url.searchParams.set('addressdetails', '1');
+
+  const data = await fetchJson(url.toString());
+  if (!data || !data.length) return null;
+
+  return {
+    lat: Number(data[0].lat),
+    lon: Number(data[0].lon)
+  };
+}
+
+async function geocodeByPhoton(query) {
+  const url = new URL('https://photon.komoot.io/api/');
+  url.searchParams.set('q', query);
+  url.searchParams.set('limit', '1');
+  url.searchParams.set('lang', 'pt');
+
+  const data = await fetchJson(url.toString());
+  const feature = data?.features?.[0];
+  if (!feature?.geometry?.coordinates?.length) return null;
+
+  return {
+    lon: Number(feature.geometry.coordinates[0]),
+    lat: Number(feature.geometry.coordinates[1])
+  };
+}
+
+async function geocodeAddressWithFallback(street, number, zip) {
+  const zipInfo = await lookupZipInfo(zip);
+  const queries = buildAddressQueries(street, number, zip, zipInfo);
+
+  for (const query of queries) {
+    const nominatimResult = await geocodeByNominatim(query);
+    if (nominatimResult) return nominatimResult;
+
+    const photonResult = await geocodeByPhoton(query);
+    if (photonResult) return photonResult;
+  }
+
+  throw new Error(`Não foi possível localizar o endereço: ${street}, ${number}, ${zip}.`);
 }
 
 function updateDateAndTimeLimits() {
@@ -80,87 +163,24 @@ function validateSchedule(dateValue, timeValue) {
   }
 }
 
-function ensureGoogleMapsLoaded() {
-  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'AIzaSyDjnUQIzufafzT6Jeqh9QkvpHCjYHaychY') {
-    throw new Error('Configure sua chave da API do Google Maps para calcular a rota.');
-  }
-
-  if (window.google?.maps?.Geocoder && window.google?.maps?.DistanceMatrixService) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    const existingScript = document.querySelector('script[data-google-maps="true"]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve());
-      existingScript.addEventListener('error', () => reject(new Error('Falha ao carregar Google Maps.')));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.googleMaps = 'true';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Falha ao carregar Google Maps.'));
-    document.head.appendChild(script);
-  });
-}
-
-function geocodeAddressGoogle(geocoder, address) {
-  return new Promise((resolve, reject) => {
-    geocoder.geocode({ address, region: 'br' }, (results, status) => {
-      if (status === 'OK' && results?.length) {
-        resolve(results[0].geometry.location);
-      } else {
-        reject(new Error(`Não foi possível localizar o endereço: ${address}.`));
-      }
-    });
-  });
-}
-
-function calculateDistanceGoogle(distanceService, originLocation, destinationLocation) {
-  return new Promise((resolve, reject) => {
-    distanceService.getDistanceMatrix(
-      {
-        origins: [originLocation],
-        destinations: [destinationLocation],
-        travelMode: window.google.maps.TravelMode.DRIVING,
-        unitSystem: window.google.maps.UnitSystem.METRIC,
-        region: 'br'
-      },
-      (response, status) => {
-        if (status !== 'OK') {
-          reject(new Error('Falha ao calcular rota no Google Maps.'));
-          return;
-        }
-
-        const element = response?.rows?.[0]?.elements?.[0];
-        if (!element || element.status !== 'OK' || !element.distance?.value) {
-          reject(new Error('Não foi possível calcular distância da rota.'));
-          return;
-        }
-
-        resolve(element.distance.value / 1000);
-      }
-    );
-  });
-}
-
 async function calculateRouteDistanceKm(origin, destination) {
-  await ensureGoogleMapsLoaded();
+  const originPoint = await geocodeAddressWithFallback(origin.street, origin.number, origin.zip);
+  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.number, destination.zip);
 
-  const geocoder = new window.google.maps.Geocoder();
-  const distanceService = new window.google.maps.DistanceMatrixService();
+  const routeUrl = new URL(
+    `https://router.project-osrm.org/route/v1/driving/${originPoint.lon},${originPoint.lat};${destinationPoint.lon},${destinationPoint.lat}`
+  );
+  routeUrl.searchParams.set('overview', 'false');
+  routeUrl.searchParams.set('alternatives', 'false');
 
-  const originAddress = buildAddress(origin.street, origin.number, origin.zip);
-  const destinationAddress = buildAddress(destination.street, destination.number, destination.zip);
+  const routeData = await fetchJson(routeUrl.toString());
+  const firstRoute = routeData?.routes?.[0];
 
-  const originLocation = await geocodeAddressGoogle(geocoder, originAddress);
-  const destinationLocation = await geocodeAddressGoogle(geocoder, destinationAddress);
+  if (!firstRoute?.distance) {
+    throw new Error('Não foi possível calcular distância da rota.');
+  }
 
-  return calculateDistanceGoogle(distanceService, originLocation, destinationLocation);
+  return firstRoute.distance / 1000;
 }
 
 function showResult(content) {
@@ -222,7 +242,7 @@ form.addEventListener('submit', async (event) => {
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="https://wa.me/5521979447509" target="_blank" rel="noopener noreferrer">Agendar corrida</a>
-      <p><small>Cálculo de distância realizado via Google Maps.</small></p>
+      <p><small>Cálculo de distância realizado via serviços públicos de geolocalização.</small></p>
     `);
   } catch (error) {
     showResult(`

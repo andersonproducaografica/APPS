@@ -27,7 +27,8 @@
           <div class="grid-3">
             <div>
               <label for="originStreet">Endereço</label>
-              <input id="originStreet" name="originStreet" type="text" placeholder="Ex: Rua das Flores" required />
+              <input id="originStreet" name="originStreet" type="text" placeholder="Ex: Rua das Flores" list="originStreetSuggestions" autocomplete="off" required />
+              <datalist id="originStreetSuggestions"></datalist>
             </div>
             <div>
               <label for="originNumber">Número</label>
@@ -43,7 +44,8 @@
           <div class="grid-3">
             <div>
               <label for="destinationStreet">Endereço</label>
-              <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Ex: Av. Central" required />
+              <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Ex: Av. Central" list="destinationStreetSuggestions" autocomplete="off" required />
+              <datalist id="destinationStreetSuggestions"></datalist>
             </div>
             <div>
               <label for="destinationNumber">Número</label>

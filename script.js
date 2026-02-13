@@ -13,16 +13,6 @@ function parsePetCount(text) {
   return numbers.map(Number).reduce((acc, n) => acc + n, 0);
 }
 
-function isDriverAvailable(dateValue, timeValue) {
-  const [hour] = timeValue.split(':').map(Number);
-  const date = new Date(`${dateValue}T${timeValue}`);
-
-  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-  const inWorkingHours = hour >= 7 && hour <= 21;
-
-  return inWorkingHours && !(isWeekend && hour > 18);
-}
-
 function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -41,6 +31,22 @@ function toTimeInputValue(date) {
   const h = String(date.getHours()).padStart(2, '0');
   const m = String(date.getMinutes()).padStart(2, '0');
   return `${h}:${m}`;
+}
+
+function normalizeZip(zip) {
+  return zip.replace(/\D/g, '');
+}
+
+function buildAddressVariants(street, number, zip) {
+  const cleanZip = normalizeZip(zip);
+  return [
+    `${street}, ${number}, ${cleanZip}, Brasil`,
+    `${street}, ${number}, ${cleanZip}`,
+    `${street}, ${number}, Brasil`,
+    `${street}, ${number}`,
+    `${street}, ${cleanZip}`,
+    `${street}`
+  ];
 }
 
 function updateDateAndTimeLimits() {
@@ -78,31 +84,37 @@ function validateSchedule(dateValue, timeValue) {
   }
 }
 
-async function geocodeAddress(address) {
-  const url = new URL('https://nominatim.openstreetmap.org/search');
-  url.searchParams.set('q', address);
-  url.searchParams.set('format', 'jsonv2');
-  url.searchParams.set('limit', '1');
+async function geocodeAddressWithFallback(street, number, zip) {
+  const variants = buildAddressVariants(street, number, zip);
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('Falha ao consultar coordenadas do endereço.');
+  for (const query of variants) {
+    const url = new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('q', query);
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('limit', '1');
+    url.searchParams.set('countrycodes', 'br');
+    url.searchParams.set('addressdetails', '1');
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      continue;
+    }
+
+    const data = await response.json();
+    if (data.length) {
+      return {
+        lat: Number(data[0].lat),
+        lon: Number(data[0].lon)
+      };
+    }
   }
 
-  const data = await response.json();
-  if (!data.length) {
-    throw new Error(`Endereço não encontrado: ${address}`);
-  }
-
-  return {
-    lat: Number(data[0].lat),
-    lon: Number(data[0].lon)
-  };
+  throw new Error(`Não foi possível localizar o endereço: ${street}, ${number}, ${zip}.`);
 }
 
 async function calculateRouteDistanceKm(origin, destination) {
-  const originPoint = await geocodeAddress(origin);
-  const destinationPoint = await geocodeAddress(destination);
+  const originPoint = await geocodeAddressWithFallback(origin.street, origin.number, origin.zip);
+  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.number, destination.zip);
 
   const routeUrl = new URL(
     `https://router.project-osrm.org/route/v1/driving/${originPoint.lon},${originPoint.lat};${destinationPoint.lon},${destinationPoint.lat}`
@@ -140,8 +152,16 @@ form.addEventListener('submit', async (event) => {
   const formData = new FormData(form);
   const fullName = formData.get('fullName').trim();
   const whatsapp = formData.get('whatsapp').trim();
-  const origin = formData.get('origin').trim();
-  const destination = formData.get('destination').trim();
+  const origin = {
+    street: formData.get('originStreet').trim(),
+    number: formData.get('originNumber').trim(),
+    zip: formData.get('originZip').trim()
+  };
+  const destination = {
+    street: formData.get('destinationStreet').trim(),
+    number: formData.get('destinationNumber').trim(),
+    zip: formData.get('destinationZip').trim()
+  };
   const date = formData.get('date');
   const time = formData.get('time');
   const petsDescription = formData.get('pets').trim();
@@ -156,8 +176,6 @@ form.addEventListener('submit', async (event) => {
     validateSchedule(date, time);
 
     const petCount = parsePetCount(petsDescription);
-    const available = isDriverAvailable(date, time);
-
     const oneWayDistanceKm = await calculateRouteDistanceKm(origin, destination);
     const chargedDistanceKm = roundTrip ? oneWayDistanceKm * 2 : oneWayDistanceKm;
 
@@ -168,19 +186,14 @@ form.addEventListener('submit', async (event) => {
 
     showResult(`
       <h2>Resultado da consulta</h2>
-      <p class="${available ? 'status-ok' : 'status-warn'}">
-        ${available ? 'Motorista disponível para o horário solicitado.' : 'Horário com baixa disponibilidade. Recomendamos ajustar o horário.'}
-      </p>
+      <p class="status-ok">Confira os dados da corrida</p>
       <ul class="result-list">
         <li><strong>Cliente:</strong> ${fullName}</li>
         <li><strong>WhatsApp:</strong> ${whatsapp}</li>
         <li><strong>Trecho:</strong> ${roundTrip ? 'Ida e volta' : 'Só ida'}</li>
-        <li><strong>Distância real (ida):</strong> ${oneWayDistanceKm.toFixed(2)} km</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
-        <li><strong>Tarifa base:</strong> ${formatCurrency(PRICE_PER_KM)}/km (mínimo ${formatCurrency(MIN_FARE)})</li>
-        <li><strong>Adicional ida e volta:</strong> ${formatCurrency(roundTripSurcharge)}</li>
-        <li><strong>Qtd. estimada de pets:</strong> ${petCount}</li>
-        <li><strong>Cotação estimada:</strong> ${formatCurrency(estimatedFare)}</li>
+        <li><strong>Qtd. de Pets:</strong> ${petCount}</li>
+        <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="https://wa.me/5521979447509" target="_blank" rel="noopener noreferrer">Agendar corrida</a>
       <p><small>Observação: cálculo de rota via OpenStreetMap (Nominatim + OSRM). Pode variar conforme trânsito e rota final do motorista.</small></p>

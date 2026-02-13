@@ -7,10 +7,10 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
 - Formulário com os dados solicitados:
   - Autocomplete (predição) para endereço de origem e destino
   - Nome completo e WhatsApp
-  - Origem (endereço, número e CEP)
-  - Destino (endereço, número e CEP)
+  - Origem (endereço e CEP)
+  - Destino (endereço e CEP)
   - Data e hora
-  - Descrição com quantidade/especificação dos pets
+  - Observações da corrida (campo opcional)
   - Opção de ida ou ida e volta
 - Validação de agenda:
   - Data somente de hoje em diante

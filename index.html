@@ -14,9 +14,7 @@
         </header>
 
         <h1>Agendamento de Corrida para PET</h1>
-        <p class="subtitle">
-          Informe os dados da viagem para validar disponibilidade do motorista e receber uma cotação estimada.
-        </p>
+        <p class="subtitle">Informe os dados da viagem para validar disponibilidade do motorista e receber uma cotação estimada.</p>
 
         <form id="booking-form">
           <label for="fullName">Nome completo</label>
@@ -25,11 +23,37 @@
           <label for="whatsapp">Contato (WhatsApp)</label>
           <input id="whatsapp" name="whatsapp" type="tel" placeholder="Ex: (11) 99999-0000" required />
 
-          <label for="origin">Endereço de origem</label>
-          <input id="origin" name="origin" type="text" placeholder="Ex: Rua das Flores, 120 - Centro" required />
+          <h3 class="section-title">Origem</h3>
+          <div class="grid-3">
+            <div>
+              <label for="originStreet">Endereço</label>
+              <input id="originStreet" name="originStreet" type="text" placeholder="Ex: Rua das Flores" required />
+            </div>
+            <div>
+              <label for="originNumber">Número</label>
+              <input id="originNumber" name="originNumber" type="text" placeholder="Ex: 120" required />
+            </div>
+            <div>
+              <label for="originZip">CEP</label>
+              <input id="originZip" name="originZip" type="text" placeholder="Ex: 20031-040" required />
+            </div>
+          </div>
 
-          <label for="destination">Endereço de destino</label>
-          <input id="destination" name="destination" type="text" placeholder="Ex: Clínica Vet Amigo, Av. Central, 530" required />
+          <h3 class="section-title">Destino</h3>
+          <div class="grid-3">
+            <div>
+              <label for="destinationStreet">Endereço</label>
+              <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Ex: Av. Central" required />
+            </div>
+            <div>
+              <label for="destinationNumber">Número</label>
+              <input id="destinationNumber" name="destinationNumber" type="text" placeholder="Ex: 530" required />
+            </div>
+            <div>
+              <label for="destinationZip">CEP</label>
+              <input id="destinationZip" name="destinationZip" type="text" placeholder="Ex: 20550-013" required />
+            </div>
+          </div>
 
           <div class="grid-2">
             <div>
@@ -43,13 +67,7 @@
           </div>
 
           <label for="pets">Quantidade e especificação dos pets</label>
-          <textarea
-            id="pets"
-            name="pets"
-            rows="4"
-            placeholder="Ex: 2 cães de porte pequeno, 1 gato em caixa de transporte"
-            required
-          ></textarea>
+          <textarea id="pets" name="pets" rows="4" placeholder="Ex: 2 cães de porte pequeno, 1 gato em caixa de transporte" required></textarea>
 
           <fieldset class="trip-type">
             <legend>A viagem será:</legend>

@@ -8,7 +8,7 @@ const MIN_FARE = 35;
 const ROUND_TRIP_SURCHARGE = 20;
 
 // Substitua por sua chave válida do Google Maps Platform.
-const GOOGLE_MAPS_API_KEY = 'AKfycbw3lRDhAB7snSFmi0O6uICdi9GYHQ3Rr-xCOcxN0oft4_COp0Ve4S3RV0xiUtlPK3M';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDjnUQIzufafzT6Jeqh9QkvpHCjYHaychY';
 
 function parsePetCount(text) {
   const numbers = text.match(/\d+/g);

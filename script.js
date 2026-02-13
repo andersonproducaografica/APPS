@@ -7,6 +7,9 @@ const PRICE_PER_KM = 3.5;
 const MIN_FARE = 35;
 const ROUND_TRIP_SURCHARGE = 20;
 
+// Substitua por sua chave válida do Google Maps Platform.
+const GOOGLE_MAPS_API_KEY = 'SUA_CHAVE_GOOGLE_AQUI';
+
 function parsePetCount(text) {
   const numbers = text.match(/\d+/g);
   if (!numbers) return 1;
@@ -37,16 +40,9 @@ function normalizeZip(zip) {
   return zip.replace(/\D/g, '');
 }
 
-function buildAddressVariants(street, number, zip) {
+function buildAddress(street, number, zip) {
   const cleanZip = normalizeZip(zip);
-  return [
-    `${street}, ${number}, ${cleanZip}, Brasil`,
-    `${street}, ${number}, ${cleanZip}`,
-    `${street}, ${number}, Brasil`,
-    `${street}, ${number}`,
-    `${street}, ${cleanZip}`,
-    `${street}`
-  ];
+  return `${street}, ${number}, ${cleanZip}, Brasil`;
 }
 
 function updateDateAndTimeLimits() {
@@ -84,57 +80,87 @@ function validateSchedule(dateValue, timeValue) {
   }
 }
 
-async function geocodeAddressWithFallback(street, number, zip) {
-  const variants = buildAddressVariants(street, number, zip);
-
-  for (const query of variants) {
-    const url = new URL('https://nominatim.openstreetmap.org/search');
-    url.searchParams.set('q', query);
-    url.searchParams.set('format', 'jsonv2');
-    url.searchParams.set('limit', '1');
-    url.searchParams.set('countrycodes', 'br');
-    url.searchParams.set('addressdetails', '1');
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      continue;
-    }
-
-    const data = await response.json();
-    if (data.length) {
-      return {
-        lat: Number(data[0].lat),
-        lon: Number(data[0].lon)
-      };
-    }
+function ensureGoogleMapsLoaded() {
+  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'SUA_CHAVE_GOOGLE_AQUI') {
+    throw new Error('Configure sua chave da API do Google Maps para calcular a rota.');
   }
 
-  throw new Error(`Não foi possível localizar o endereço: ${street}, ${number}, ${zip}.`);
+  if (window.google?.maps?.Geocoder && window.google?.maps?.DistanceMatrixService) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const existingScript = document.querySelector('script[data-google-maps="true"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve());
+      existingScript.addEventListener('error', () => reject(new Error('Falha ao carregar Google Maps.')));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.dataset.googleMaps = 'true';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Falha ao carregar Google Maps.'));
+    document.head.appendChild(script);
+  });
+}
+
+function geocodeAddressGoogle(geocoder, address) {
+  return new Promise((resolve, reject) => {
+    geocoder.geocode({ address, region: 'br' }, (results, status) => {
+      if (status === 'OK' && results?.length) {
+        resolve(results[0].geometry.location);
+      } else {
+        reject(new Error(`Não foi possível localizar o endereço: ${address}.`));
+      }
+    });
+  });
+}
+
+function calculateDistanceGoogle(distanceService, originLocation, destinationLocation) {
+  return new Promise((resolve, reject) => {
+    distanceService.getDistanceMatrix(
+      {
+        origins: [originLocation],
+        destinations: [destinationLocation],
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        unitSystem: window.google.maps.UnitSystem.METRIC,
+        region: 'br'
+      },
+      (response, status) => {
+        if (status !== 'OK') {
+          reject(new Error('Falha ao calcular rota no Google Maps.'));
+          return;
+        }
+
+        const element = response?.rows?.[0]?.elements?.[0];
+        if (!element || element.status !== 'OK' || !element.distance?.value) {
+          reject(new Error('Não foi possível calcular distância da rota.'));
+          return;
+        }
+
+        resolve(element.distance.value / 1000);
+      }
+    );
+  });
 }
 
 async function calculateRouteDistanceKm(origin, destination) {
-  const originPoint = await geocodeAddressWithFallback(origin.street, origin.number, origin.zip);
-  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.number, destination.zip);
+  await ensureGoogleMapsLoaded();
 
-  const routeUrl = new URL(
-    `https://router.project-osrm.org/route/v1/driving/${originPoint.lon},${originPoint.lat};${destinationPoint.lon},${destinationPoint.lat}`
-  );
-  routeUrl.searchParams.set('overview', 'false');
-  routeUrl.searchParams.set('alternatives', 'false');
+  const geocoder = new window.google.maps.Geocoder();
+  const distanceService = new window.google.maps.DistanceMatrixService();
 
-  const routeResponse = await fetch(routeUrl);
-  if (!routeResponse.ok) {
-    throw new Error('Falha ao calcular rota real entre origem e destino.');
-  }
+  const originAddress = buildAddress(origin.street, origin.number, origin.zip);
+  const destinationAddress = buildAddress(destination.street, destination.number, destination.zip);
 
-  const routeData = await routeResponse.json();
-  const firstRoute = routeData?.routes?.[0];
+  const originLocation = await geocodeAddressGoogle(geocoder, originAddress);
+  const destinationLocation = await geocodeAddressGoogle(geocoder, destinationAddress);
 
-  if (!firstRoute?.distance) {
-    throw new Error('Não foi possível calcular distância da rota.');
-  }
-
-  return firstRoute.distance / 1000;
+  return calculateDistanceGoogle(distanceService, originLocation, destinationLocation);
 }
 
 function showResult(content) {
@@ -196,7 +222,7 @@ form.addEventListener('submit', async (event) => {
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="https://wa.me/5521979447509" target="_blank" rel="noopener noreferrer">Agendar corrida</a>
-      <p><small>Observação: cálculo de rota via OpenStreetMap (Nominatim + OSRM). Pode variar conforme trânsito e rota final do motorista.</small></p>
+      <p><small>Cálculo de distância realizado via Google Maps.</small></p>
     `);
   } catch (error) {
     showResult(`

@@ -6,6 +6,10 @@ const originStreetInput = document.querySelector('#originStreet');
 const destinationStreetInput = document.querySelector('#destinationStreet');
 const originStreetSuggestions = document.querySelector('#originStreetSuggestions');
 const destinationStreetSuggestions = document.querySelector('#destinationStreetSuggestions');
+const returnScheduleSection = document.querySelector('#return-schedule');
+const returnDateInput = document.querySelector('#returnDate');
+const returnTimeInput = document.querySelector('#returnTime');
+const roundTripRadios = document.querySelectorAll('input[name="roundTrip"]');
 
 const PRICE_PER_KM = 3.5;
 const MIN_FARE = 35;
@@ -41,6 +45,26 @@ function toTimeInputValue(date) {
 function formatDateBR(dateValue) {
   const [year, month, day] = dateValue.split('-');
   return `${day}/${month}/${year}`;
+}
+
+
+function isRoundTripSelected() {
+  const selected = document.querySelector('input[name="roundTrip"]:checked');
+  return selected?.value === 'sim';
+}
+
+function toggleReturnScheduleFields() {
+  const enabled = isRoundTripSelected();
+  returnScheduleSection.classList.toggle('hidden', !enabled);
+  returnDateInput.required = enabled;
+  returnTimeInput.required = enabled;
+
+  if (!enabled) {
+    returnDateInput.value = '';
+    returnTimeInput.value = '';
+    returnDateInput.removeAttribute('min');
+    returnTimeInput.removeAttribute('min');
+  }
 }
 
 function normalizeZip(zip) {
@@ -189,21 +213,35 @@ function updateDateAndTimeLimits() {
   } else {
     timeInput.removeAttribute('min');
   }
+
+  if (isRoundTripSelected()) {
+    returnDateInput.min = dateInput.value || today;
+
+    if (returnDateInput.value === today) {
+      const minReturnTime = toTimeInputValue(new Date(now.getTime() + 30 * 60 * 1000));
+      returnTimeInput.min = minReturnTime;
+      if (returnTimeInput.value && returnTimeInput.value < minReturnTime) {
+        returnTimeInput.value = minReturnTime;
+      }
+    } else {
+      returnTimeInput.removeAttribute('min');
+    }
+  }
 }
 
-function validateSchedule(dateValue, timeValue) {
+function validateSchedule(dateValue, timeValue, label = 'ida') {
   const now = new Date();
   const schedule = new Date(`${dateValue}T${timeValue}`);
 
   const today = toLocalDateInputValue(now);
   if (dateValue < today) {
-    throw new Error('A data da corrida deve ser hoje ou uma data futura.');
+    throw new Error(`A data da ${label} deve ser hoje ou uma data futura.`);
   }
 
   if (dateValue === today) {
     const minSchedule = new Date(now.getTime() + 30 * 60 * 1000);
     if (schedule < minSchedule) {
-      throw new Error('Para hoje, selecione um horário com pelo menos 30 minutos de antecedência.');
+      throw new Error(`Para hoje, selecione um horário da ${label} com pelo menos 30 minutos de antecedência.`);
     }
   }
 }
@@ -237,7 +275,13 @@ function showResult(content) {
 setupAddressAutocomplete(originStreetInput, originStreetSuggestions);
 setupAddressAutocomplete(destinationStreetInput, destinationStreetSuggestions);
 
+roundTripRadios.forEach((radio) => radio.addEventListener('change', () => {
+  toggleReturnScheduleFields();
+  updateDateAndTimeLimits();
+}));
 dateInput.addEventListener('change', updateDateAndTimeLimits);
+returnDateInput.addEventListener('change', updateDateAndTimeLimits);
+toggleReturnScheduleFields();
 updateDateAndTimeLimits();
 
 form.addEventListener('submit', async (event) => {
@@ -256,6 +300,8 @@ form.addEventListener('submit', async (event) => {
   };
   const date = formData.get('date');
   const time = formData.get('time');
+  const returnDate = formData.get('returnDate');
+  const returnTime = formData.get('returnTime');
   const rideNotes = formData.get('pets').trim();
   const roundTrip = formData.get('roundTrip') === 'sim';
 
@@ -265,7 +311,10 @@ form.addEventListener('submit', async (event) => {
   `);
 
   try {
-    validateSchedule(date, time);
+    validateSchedule(date, time, 'ida');
+    if (roundTrip) {
+      validateSchedule(returnDate, returnTime, 'volta');
+    }
 
     const petCount = rideNotes ? parsePetCount(rideNotes) : 1;
     const oneWayDistanceKm = await calculateRouteDistanceKm(origin, destination);
@@ -278,6 +327,7 @@ form.addEventListener('submit', async (event) => {
 
     const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
     const formattedDate = formatDateBR(date);
+    const formattedReturnDate = returnDate ? formatDateBR(returnDate) : '';
     const originText = `${origin.street} - CEP ${origin.zip}`;
     const destinationText = `${destination.street} - CEP ${destination.zip}`;
 
@@ -287,6 +337,7 @@ form.addEventListener('submit', async (event) => {
       '*Gostaria de agendar uma corrida*',
       '',
       `Para: *${formattedDate} às ${time}*`,
+      ...(roundTrip ? [`Volta: *${formattedReturnDate} às ${returnTime}*`] : []),
       `Origem: ${originText}`,
       `Destino: ${destinationText}`,
       `Trecho: ${tripLabel}`,
@@ -303,7 +354,8 @@ form.addEventListener('submit', async (event) => {
       <ul class="result-list">
         <li><strong>Cliente:</strong> ${fullName}</li>
         <li><strong>WhatsApp:</strong> ${whatsapp}</li>
-        <li><strong>Data/Hora:</strong> ${formattedDate} às ${time}</li>
+        <li><strong>Data/Hora (ida):</strong> ${formattedDate} às ${time}</li>
+        ${roundTrip ? `<li><strong>Data/Hora (volta):</strong> ${formattedReturnDate} às ${returnTime}</li>` : ''}
         <li><strong>Trecho:</strong> ${tripLabel}</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
         ${rideNotes ? `<li><strong>Observações da corrida:</strong> ${rideNotes}</li>` : ''}

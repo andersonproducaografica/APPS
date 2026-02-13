@@ -89,6 +89,9 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const formData = new FormData(form);
+  const firstName = formData.get('firstName').trim();
+  const lastName = formData.get('lastName').trim();
+  const whatsapp = formData.get('whatsapp').trim();
   const origin = formData.get('origin').trim();
   const destination = formData.get('destination').trim();
   const date = formData.get('date');
@@ -119,6 +122,8 @@ form.addEventListener('submit', async (event) => {
         ${available ? 'Motorista disponível para o horário solicitado.' : 'Horário com baixa disponibilidade. Recomendamos ajustar o horário.'}
       </p>
       <ul class="result-list">
+        <li><strong>Cliente:</strong> ${firstName} ${lastName}</li>
+        <li><strong>WhatsApp:</strong> ${whatsapp}</li>
         <li><strong>Trecho:</strong> ${roundTrip ? 'Ida e volta' : 'Só ida'}</li>
         <li><strong>Distância real (ida):</strong> ${oneWayDistanceKm.toFixed(2)} km</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>

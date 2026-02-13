@@ -5,6 +5,7 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
 ## O que este esboço cobre
 
 - Formulário com os dados solicitados:
+  - Autocomplete (predição) para endereço de origem e destino
   - Nome completo e WhatsApp
   - Origem (endereço, número e CEP)
   - Destino (endereço, número e CEP)
@@ -36,3 +37,4 @@ Depois abra: <http://localhost:8000>
 
 - Este protótipo depende de internet.
 - APIs públicas podem ter indisponibilidade pontual.
+- O botão de CTA do WhatsApp já abre com as informações da corrida preenchidas na mensagem.

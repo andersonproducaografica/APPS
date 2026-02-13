@@ -81,7 +81,7 @@ function validateSchedule(dateValue, timeValue) {
 }
 
 function ensureGoogleMapsLoaded() {
-  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'SUA_CHAVE_GOOGLE_AQUI') {
+  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'AIzaSyDjnUQIzufafzT6Jeqh9QkvpHCjYHaychY') {
     throw new Error('Configure sua chave da API do Google Maps para calcular a rota.');
   }
 

@@ -278,15 +278,16 @@ form.addEventListener('submit', async (event) => {
     const destinationText = `${destination.street}, ${destination.number} - CEP ${destination.zip}`;
 
     const whatsappMessage = [
-      'Olá! Quero agendar a seguinte corrida:',
-      `Cliente: ${fullName}`,
-      `Contato: ${whatsapp}`,
-      `Data/Hora: ${date} às ${time}`,
+      '*Olá,*',
+      `Me chamo, *${fullName}*.` ,
+      'Quero agendar uma corrida!!',
+      '',
+      `Para: *${date} às ${time}*`,
       `Origem: ${originText}`,
       `Destino: ${destinationText}`,
       `Trecho: ${tripLabel}`,
       `Qtd. de Pets: ${petCount}`,
-      `Valor estimado da corrida: ${formatCurrency(estimatedFare)}`
+      `Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`
     ].join('\n');
 
     const whatsappLink = `https://wa.me/5521979447509?text=${encodeURIComponent(whatsappMessage)}`;

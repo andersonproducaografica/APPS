@@ -12,8 +12,8 @@ const returnTimeInput = document.querySelector('#returnTime');
 const roundTripRadios = document.querySelectorAll('input[name="roundTrip"]');
 
 const PRICE_PER_KM = 3.5;
-const MIN_FARE = 35;
-const ROUND_TRIP_SURCHARGE = 20;
+const MIN_FARE_ONE_WAY = 35;
+const ROUND_TRIP_BASE_FARE = 55;
 
 function parsePetCount(text) {
   const numbers = text.match(/\d+/g);
@@ -322,8 +322,9 @@ form.addEventListener('submit', async (event) => {
 
     const distanceFare = chargedDistanceKm * PRICE_PER_KM;
     const petSurcharge = petCount > 1 ? (petCount - 1) * 6 : 0;
-    const roundTripSurcharge = roundTrip ? ROUND_TRIP_SURCHARGE : 0;
-    const estimatedFare = Math.max(MIN_FARE, distanceFare + petSurcharge + roundTripSurcharge);
+    const estimatedFare = roundTrip
+      ? ROUND_TRIP_BASE_FARE + distanceFare + petSurcharge
+      : Math.max(MIN_FARE_ONE_WAY, distanceFare + petSurcharge);
 
     const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
     const formattedDate = formatDateBR(date);
@@ -336,12 +337,22 @@ form.addEventListener('submit', async (event) => {
       `Me chamo, *${fullName}*.` ,
       '*Gostaria de agendar uma corrida*',
       '',
-      `Para: *${formattedDate} às ${time}*`,
-      ...(roundTrip ? [`Volta: *${formattedReturnDate} às ${returnTime}*`] : []),
-      `Origem: ${originText}`,
-      `Destino: ${destinationText}`,
-      `Trecho: ${tripLabel}`,
-      `Qtd. de Pets: ${petCount}`,
+      ...(roundTrip
+        ? [
+            `IDA: ${formattedDate} às ${time}`,
+            `Origem: ${originText}`,
+            `Destino: ${destinationText}`,
+            '',
+            `VOLTA: ${formattedReturnDate} às ${returnTime}`,
+            `Origem: ${destinationText}`,
+            `Destino: ${originText}`
+          ]
+        : [
+            `Para: *${formattedDate} às ${time}*`,
+            `Origem: ${originText}`,
+            `Destino: ${destinationText}`,
+            `Trecho: ${tripLabel}`
+          ]),
       `Observações da corrida: ${rideNotes || 'Não informado'}`,
       `Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`
     ].join('\n');

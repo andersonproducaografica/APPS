@@ -2,6 +2,10 @@ const form = document.querySelector('#booking-form');
 const resultContainer = document.querySelector('#result');
 const dateInput = document.querySelector('#date');
 const timeInput = document.querySelector('#time');
+const originStreetInput = document.querySelector('#originStreet');
+const destinationStreetInput = document.querySelector('#destinationStreet');
+const originStreetSuggestions = document.querySelector('#originStreetSuggestions');
+const destinationStreetSuggestions = document.querySelector('#destinationStreetSuggestions');
 
 const PRICE_PER_KM = 3.5;
 const MIN_FARE = 35;
@@ -113,6 +117,42 @@ async function geocodeByPhoton(query) {
   };
 }
 
+
+async function fetchAddressSuggestions(query) {
+  if (!query || query.trim().length < 3) return [];
+
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('q', `${query}, Brasil`);
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('limit', '5');
+  url.searchParams.set('countrycodes', 'br');
+  url.searchParams.set('addressdetails', '1');
+
+  const data = await fetchJson(url.toString());
+  if (!data || !Array.isArray(data)) return [];
+
+  return data
+    .map((item) => item.display_name)
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function setupAddressAutocomplete(inputEl, datalistEl) {
+  let debounceTimer;
+
+  inputEl.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      const suggestions = await fetchAddressSuggestions(inputEl.value);
+      datalistEl.innerHTML = suggestions.map((text) => `<option value="${text.replace(/"/g, '&quot;')}"></option>`).join('');
+    }, 320);
+  });
+
+  inputEl.addEventListener('blur', () => {
+    clearTimeout(debounceTimer);
+  });
+}
+
 async function geocodeAddressWithFallback(street, number, zip) {
   const zipInfo = await lookupZipInfo(zip);
   const queries = buildAddressQueries(street, number, zip, zipInfo);
@@ -189,6 +229,9 @@ function showResult(content) {
   resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+setupAddressAutocomplete(originStreetInput, originStreetSuggestions);
+setupAddressAutocomplete(destinationStreetInput, destinationStreetSuggestions);
+
 dateInput.addEventListener('change', updateDateAndTimeLimits);
 updateDateAndTimeLimits();
 
@@ -230,18 +273,36 @@ form.addEventListener('submit', async (event) => {
     const roundTripSurcharge = roundTrip ? ROUND_TRIP_SURCHARGE : 0;
     const estimatedFare = Math.max(MIN_FARE, distanceFare + petSurcharge + roundTripSurcharge);
 
+    const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
+    const originText = `${origin.street}, ${origin.number} - CEP ${origin.zip}`;
+    const destinationText = `${destination.street}, ${destination.number} - CEP ${destination.zip}`;
+
+    const whatsappMessage = [
+      'Olá! Quero agendar a seguinte corrida:',
+      `Cliente: ${fullName}`,
+      `Contato: ${whatsapp}`,
+      `Data/Hora: ${date} às ${time}`,
+      `Origem: ${originText}`,
+      `Destino: ${destinationText}`,
+      `Trecho: ${tripLabel}`,
+      `Qtd. de Pets: ${petCount}`,
+      `Valor estimado da corrida: ${formatCurrency(estimatedFare)}`
+    ].join('\n');
+
+    const whatsappLink = `https://wa.me/5521979447509?text=${encodeURIComponent(whatsappMessage)}`;
+
     showResult(`
       <h2>Resultado da consulta</h2>
       <p class="status-ok">Confira os dados da corrida</p>
       <ul class="result-list">
         <li><strong>Cliente:</strong> ${fullName}</li>
         <li><strong>WhatsApp:</strong> ${whatsapp}</li>
-        <li><strong>Trecho:</strong> ${roundTrip ? 'Ida e volta' : 'Só ida'}</li>
+        <li><strong>Trecho:</strong> ${tripLabel}</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
         <li><strong>Qtd. de Pets:</strong> ${petCount}</li>
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
-      <a class="whatsapp-cta" href="https://wa.me/5521979447509" target="_blank" rel="noopener noreferrer">Agendar corrida</a>
+      <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Agendar corrida</a>
       <p><small>Cálculo de distância realizado via serviços públicos de geolocalização.</small></p>
     `);
   } catch (error) {

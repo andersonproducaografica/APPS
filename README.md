@@ -22,8 +22,8 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
   - OSRM (distância de rota)
 - Cotação com regras:
   - **R$ 3,50 por km**
-  - **Valor mínimo de corrida: R$ 35,00**
-  - **Adicional de R$ 20,00 para ida e volta**
+  - **Valor mínimo de corrida (só ida): R$ 35,00**
+  - **Tarifa base para ida e volta: R$ 55,00 + km dos percursos**
 
 ## Como rodar
 

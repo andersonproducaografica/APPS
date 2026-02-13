@@ -37,6 +37,12 @@ function toTimeInputValue(date) {
   return `${h}:${m}`;
 }
 
+
+function formatDateBR(dateValue) {
+  const [year, month, day] = dateValue.split('-');
+  return `${day}/${month}/${year}`;
+}
+
 function normalizeZip(zip) {
   return zip.replace(/\D/g, '');
 }
@@ -128,10 +134,12 @@ async function fetchAddressSuggestions(query) {
   const data = await fetchJson(url.toString());
   if (!data || !Array.isArray(data)) return [];
 
-  return data
-    .map((item) => item.display_name)
-    .filter(Boolean)
-    .slice(0, 5);
+  const suggestions = data
+    .map((item) => item.address?.road || item.address?.pedestrian || item.name || item.display_name?.split(',')[0] || '')
+    .map((street) => street.replace(/\d+/g, '').replace(/\s{2,}/g, ' ').trim())
+    .filter(Boolean);
+
+  return [...new Set(suggestions)].slice(0, 5);
 }
 
 function setupAddressAutocomplete(inputEl, datalistEl) {
@@ -269,6 +277,7 @@ form.addEventListener('submit', async (event) => {
     const estimatedFare = Math.max(MIN_FARE, distanceFare + petSurcharge + roundTripSurcharge);
 
     const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
+    const formattedDate = formatDateBR(date);
     const originText = `${origin.street} - CEP ${origin.zip}`;
     const destinationText = `${destination.street} - CEP ${destination.zip}`;
 
@@ -277,7 +286,7 @@ form.addEventListener('submit', async (event) => {
       `Me chamo, *${fullName}*.` ,
       '*Gostaria de agendar uma corrida*',
       '',
-      `Para: *${date} às ${time}*`,
+      `Para: *${formattedDate} às ${time}*`,
       `Origem: ${originText}`,
       `Destino: ${destinationText}`,
       `Trecho: ${tripLabel}`,
@@ -294,10 +303,10 @@ form.addEventListener('submit', async (event) => {
       <ul class="result-list">
         <li><strong>Cliente:</strong> ${fullName}</li>
         <li><strong>WhatsApp:</strong> ${whatsapp}</li>
+        <li><strong>Data/Hora:</strong> ${formattedDate} às ${time}</li>
         <li><strong>Trecho:</strong> ${tripLabel}</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
-        <li><strong>Qtd. de Pets:</strong> ${petCount}</li>
-        <li><strong>Observações da corrida:</strong> ${rideNotes || 'Não informado'}</li>
+        ${rideNotes ? `<li><strong>Observações da corrida:</strong> ${rideNotes}</li>` : ''}
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Agendar corrida</a>

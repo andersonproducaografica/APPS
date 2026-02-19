@@ -10,6 +10,9 @@ const returnScheduleSection = document.querySelector('#return-schedule');
 const returnDateInput = document.querySelector('#returnDate');
 const returnTimeInput = document.querySelector('#returnTime');
 const roundTripRadios = document.querySelectorAll('input[name="roundTrip"]');
+const tripPurposeSelect = document.querySelector('#tripPurpose');
+const purposeOtherWrap = document.querySelector('#purpose-other-wrap');
+const purposeOtherInput = document.querySelector('#purposeOther');
 
 const PRICE_PER_KM = 3.5;
 const MIN_FARE_ONE_WAY = 35;
@@ -64,6 +67,44 @@ function toggleReturnScheduleFields() {
     returnTimeInput.value = '';
     returnDateInput.removeAttribute('min');
     returnTimeInput.removeAttribute('min');
+  }
+}
+
+
+function togglePurposeOtherField() {
+  const isOther = tripPurposeSelect.value === 'Outros';
+  purposeOtherWrap.classList.toggle('hidden', !isOther);
+  if (!isOther) {
+    purposeOtherInput.value = '';
+  }
+}
+
+function calculateWaitSurcharge(rideDate, rideTime, returnDate, returnTime) {
+  if (!returnDate || !returnTime) return 0;
+
+  const outbound = new Date(`${rideDate}T${rideTime}`);
+  const inbound = new Date(`${returnDate}T${returnTime}`);
+  const waitMinutes = Math.floor((inbound - outbound) / 60000);
+
+  if (waitMinutes <= 20) return 0;
+  if (waitMinutes < 60) return 20;
+
+  const extraMinutesAfterFirstHour = Math.max(0, waitMinutes - 60);
+  const blocksOfTen = Math.ceil(extraMinutesAfterFirstHour / 10);
+
+  if (waitMinutes < 180) {
+    return 20 + blocksOfTen * 4;
+  }
+
+  return 20 + blocksOfTen * 3;
+}
+
+function validateReturnAfterOutbound(rideDate, rideTime, returnDate, returnTime) {
+  const outbound = new Date(`${rideDate}T${rideTime}`);
+  const inbound = new Date(`${returnDate}T${returnTime}`);
+
+  if (inbound <= outbound) {
+    throw new Error('A data/hora da volta deve ser posterior à data/hora da ida.');
   }
 }
 
@@ -279,9 +320,11 @@ roundTripRadios.forEach((radio) => radio.addEventListener('change', () => {
   toggleReturnScheduleFields();
   updateDateAndTimeLimits();
 }));
+tripPurposeSelect.addEventListener('change', togglePurposeOtherField);
 dateInput.addEventListener('change', updateDateAndTimeLimits);
 returnDateInput.addEventListener('change', updateDateAndTimeLimits);
 toggleReturnScheduleFields();
+togglePurposeOtherField();
 updateDateAndTimeLimits();
 
 form.addEventListener('submit', async (event) => {
@@ -302,6 +345,8 @@ form.addEventListener('submit', async (event) => {
   const time = formData.get('time');
   const returnDate = formData.get('returnDate');
   const returnTime = formData.get('returnTime');
+  const tripPurpose = formData.get('tripPurpose');
+  const purposeOther = formData.get('purposeOther').trim();
   const rideNotes = formData.get('pets').trim();
   const roundTrip = formData.get('roundTrip') === 'sim';
 
@@ -314,6 +359,7 @@ form.addEventListener('submit', async (event) => {
     validateSchedule(date, time, 'ida');
     if (roundTrip) {
       validateSchedule(returnDate, returnTime, 'volta');
+      validateReturnAfterOutbound(date, time, returnDate, returnTime);
     }
 
     const petCount = rideNotes ? parsePetCount(rideNotes) : 1;
@@ -322,11 +368,20 @@ form.addEventListener('submit', async (event) => {
 
     const distanceFare = chargedDistanceKm * PRICE_PER_KM;
     const petSurcharge = petCount > 1 ? (petCount - 1) * 6 : 0;
+
+    const oneWayLongDistanceSurcharge = !roundTrip && oneWayDistanceKm > 50
+      ? oneWayDistanceKm * 0.5
+      : 0;
+    const waitSurcharge = roundTrip
+      ? calculateWaitSurcharge(date, time, returnDate, returnTime)
+      : 0;
+
     const estimatedFare = roundTrip
-      ? ROUND_TRIP_BASE_FARE + distanceFare + petSurcharge
-      : Math.max(MIN_FARE_ONE_WAY, distanceFare + petSurcharge);
+      ? ROUND_TRIP_BASE_FARE + distanceFare + petSurcharge + waitSurcharge
+      : Math.max(MIN_FARE_ONE_WAY, distanceFare + petSurcharge + oneWayLongDistanceSurcharge);
 
     const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
+    const purposeText = tripPurpose === 'Outros' ? `Outros (${purposeOther || 'não detalhado'})` : tripPurpose;
     const formattedDate = formatDateBR(date);
     const formattedReturnDate = returnDate ? formatDateBR(returnDate) : '';
     const originText = `${origin.street} - CEP ${origin.zip}`;
@@ -353,7 +408,9 @@ form.addEventListener('submit', async (event) => {
             `Destino: ${destinationText}`,
             `Trecho: ${tripLabel}`
           ]),
-      `Observações da corrida: ${rideNotes || 'Não informado'}`,
+      `Detalhes da corrida: ${rideNotes || 'Não informado'}`,
+      ...(oneWayLongDistanceSurcharge ? [`Adicional retorno estimado (>50km): ${formatCurrency(oneWayLongDistanceSurcharge)}`] : []),
+      ...(waitSurcharge ? [`Adicional de espera: ${formatCurrency(waitSurcharge)}`] : []),
       `Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`
     ].join('\n');
 
@@ -368,8 +425,11 @@ form.addEventListener('submit', async (event) => {
         <li><strong>Data/Hora (ida):</strong> ${formattedDate} às ${time}</li>
         ${roundTrip ? `<li><strong>Data/Hora (volta):</strong> ${formattedReturnDate} às ${returnTime}</li>` : ''}
         <li><strong>Trecho:</strong> ${tripLabel}</li>
+        <li><strong>Objetivo da corrida:</strong> ${purposeText}</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
-        ${rideNotes ? `<li><strong>Observações da corrida:</strong> ${rideNotes}</li>` : ''}
+        ${rideNotes ? `<li><strong>Detalhes da corrida:</strong> ${rideNotes}</li>` : ''}
+        ${oneWayLongDistanceSurcharge ? `<li><strong>Adicional retorno estimado (>50km):</strong> ${formatCurrency(oneWayLongDistanceSurcharge)}</li>` : ''}
+        ${waitSurcharge ? `<li><strong>Adicional de espera:</strong> ${formatCurrency(waitSurcharge)}</li>` : ''}
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Agendar corrida</a>

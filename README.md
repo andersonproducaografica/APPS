@@ -18,7 +18,7 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
   - Para hoje, horário com no mínimo 30 minutos de antecedência
 - Cálculo de quilometragem com fallback de geolocalização:
   - ViaCEP (enriquecimento por CEP)
-  - Nominatim (OpenStreetMap)
+  - Nominatim (OpenStreetMap) com recorte geográfico para o estado do RJ e tentativas por regiões (Metropolitana, Lagos, Serrana e Costa Verde)
   - Photon (komoot)
   - OSRM (distância de rota)
 - Cotação com regras:

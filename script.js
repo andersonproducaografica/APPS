@@ -152,9 +152,10 @@ async function lookupZipInfo(zip) {
   };
 }
 
-function buildAddressQueries(street, zip, zipInfo) {
+function buildAddressQueries(street, zip, zipInfo, cityHint = '') {
   const cleanZip = normalizeZip(zip);
-  const cityState = zipInfo?.city && zipInfo?.state ? `${zipInfo.city} ${zipInfo.state}` : '';
+  const cityBase = cityHint || zipInfo?.city || '';
+  const cityState = cityBase && zipInfo?.state ? `${cityBase} ${zipInfo.state}` : cityBase;
   const neighborhood = zipInfo?.neighborhood || '';
 
   const baseQueries = [
@@ -227,9 +228,11 @@ async function fetchAddressSuggestions(query) {
       const street = item.address?.road || item.address?.pedestrian || item.name || item.display_name?.split(',')[0] || '';
       const cleanedStreet = street.replace(/\d+/g, '').replace(/\s{2,}/g, ' ').trim();
       const zip = normalizeZip(item.address?.postcode || '');
+      const city = item.address?.city || item.address?.town || item.address?.municipality || item.address?.state_district || '';
       return {
         street: cleanedStreet,
-        zip
+        zip,
+        city
       };
     })
     .filter((item) => item.street);
@@ -247,10 +250,13 @@ async function fetchAddressSuggestions(query) {
 }
 
 function setupAddressAutocomplete(inputEl, datalistEl) {
-  const streetZipMap = new Map();
+  const streetAddressMap = new Map();
   const zipInput = inputEl.id === 'originStreet'
     ? document.querySelector('#originZip')
     : document.querySelector('#destinationZip');
+  const cityInput = inputEl.id === 'originStreet'
+    ? document.querySelector('#originCity')
+    : document.querySelector('#destinationCity');
 
   let debounceTimer;
 
@@ -258,20 +264,24 @@ function setupAddressAutocomplete(inputEl, datalistEl) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       const suggestions = await fetchAddressSuggestions(inputEl.value);
-      streetZipMap.clear();
+      streetAddressMap.clear();
       suggestions.forEach((item) => {
-        if (item.zip?.length === 8) {
-          streetZipMap.set(item.street.toLowerCase(), item.zip);
-        }
+        streetAddressMap.set(item.street.toLowerCase(), {
+          zip: item.zip,
+          city: item.city
+        });
       });
       datalistEl.innerHTML = suggestions.map((item) => `<option value="${item.street.replace(/"/g, '&quot;')}"></option>`).join('');
     }, 320);
   });
 
   inputEl.addEventListener('change', () => {
-    const zipFromStreet = streetZipMap.get(inputEl.value.trim().toLowerCase());
-    if (zipFromStreet && zipInput) {
-      zipInput.value = zipFromStreet.replace(/(\d{5})(\d{3})/, '$1-$2');
+    const addressFromStreet = streetAddressMap.get(inputEl.value.trim().toLowerCase());
+    if (addressFromStreet?.zip?.length === 8 && zipInput) {
+      zipInput.value = addressFromStreet.zip.replace(/(\d{5})(\d{3})/, '$1-$2');
+    }
+    if (addressFromStreet?.city && cityInput) {
+      cityInput.value = addressFromStreet.city;
     }
   });
 
@@ -280,9 +290,9 @@ function setupAddressAutocomplete(inputEl, datalistEl) {
   });
 }
 
-async function geocodeAddressWithFallback(street, zip) {
+async function geocodeAddressWithFallback(street, zip, city) {
   const zipInfo = await lookupZipInfo(zip);
-  const queries = buildAddressQueries(street, zip, zipInfo);
+  const queries = buildAddressQueries(street, zip, zipInfo, city);
 
   for (const query of queries) {
     const nominatimRjResult = await geocodeByNominatim(query, true);
@@ -348,8 +358,8 @@ function validateSchedule(dateValue, timeValue, label = 'ida') {
 }
 
 async function calculateRouteDistanceKm(origin, destination) {
-  const originPoint = await geocodeAddressWithFallback(origin.street, origin.zip);
-  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.zip);
+  const originPoint = await geocodeAddressWithFallback(origin.street, origin.zip, origin.city);
+  const destinationPoint = await geocodeAddressWithFallback(destination.street, destination.zip, destination.city);
 
   const routeUrl = new URL(
     `https://router.project-osrm.org/route/v1/driving/${originPoint.lon},${originPoint.lat};${destinationPoint.lon},${destinationPoint.lat}`
@@ -405,11 +415,13 @@ form.addEventListener('submit', async (event) => {
   const whatsapp = formData.get('whatsapp').trim();
   const origin = {
     street: formData.get('originStreet').trim(),
-    zip: formData.get('originZip').trim()
+    zip: formData.get('originZip').trim(),
+    city: formData.get('originCity').trim()
   };
   const destination = {
     street: formData.get('destinationStreet').trim(),
-    zip: formData.get('destinationZip').trim()
+    zip: formData.get('destinationZip').trim(),
+    city: formData.get('destinationCity').trim()
   };
   const date = formData.get('date');
   const time = formData.get('time');
@@ -455,8 +467,8 @@ form.addEventListener('submit', async (event) => {
     const purposeText = tripPurpose === 'Outros' ? `Outros (${purposeOther || 'não detalhado'})` : tripPurpose;
     const formattedDate = formatDateBR(date);
     const formattedReturnDate = returnDate ? formatDateBR(returnDate) : '';
-    const originText = `${origin.street} - CEP ${origin.zip}`;
-    const destinationText = `${destination.street} - CEP ${destination.zip}`;
+    const originText = `${origin.street} - ${origin.city} - CEP ${origin.zip}`;
+    const destinationText = `${destination.street} - ${destination.city} - CEP ${destination.zip}`;
 
     const whatsappMessage = [
       '*Olá,*',

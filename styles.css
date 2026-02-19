@@ -71,6 +71,10 @@ body {
   font-size: 0.98rem;
 }
 
+.address-meta-row input {
+  margin-bottom: 0;
+}
+
 label,
 legend {
   font-weight: 600;
@@ -142,6 +146,10 @@ select {
 
 .submit-wrap button:hover { background: var(--primary-hover); }
 
+.result {
+  margin-top: 0.55rem;
+}
+
 .result h2 { margin-top: 0; }
 .status-ok { color: var(--ok); font-weight: 700; }
 .status-warn { color: var(--warn); font-weight: 700; }
@@ -183,4 +191,12 @@ select {
   font-weight: 700;
   border-radius: 12px;
   padding: 0.85rem 1rem;
+}
+
+.app-footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #1c2b42;
+  margin: 0.9rem 0 5.8rem;
+  font-weight: 600;
 }

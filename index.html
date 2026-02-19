@@ -20,7 +20,7 @@
         <section class="form-section">
           <h2>1. Rota da corrida</h2>
 
-          <label for="originStreet">Origem</label>
+          <label for="originStreet" class="route-label">Origem</label>
           <input id="originStreet" name="originStreet" type="text" placeholder="Rua e número" list="originStreetSuggestions" autocomplete="off" required />
           <datalist id="originStreetSuggestions"></datalist>
 
@@ -35,7 +35,7 @@
             </div>
           </div>
 
-          <label for="destinationStreet">Destino</label>
+          <label for="destinationStreet" class="route-label route-label-destination">Destino</label>
           <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Rua e número" list="destinationStreetSuggestions" autocomplete="off" required />
           <datalist id="destinationStreetSuggestions"></datalist>
 
@@ -118,7 +118,7 @@
         </div>
       </form>
 
-      <section class="card result hidden" id="result"></section>
+      <section class="card result result-banner hidden" id="result"></section>
       <footer class="app-footer">Desenvolvido por: Anderson Ramos</footer>
     </main>
 

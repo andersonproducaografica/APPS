@@ -11,8 +11,8 @@
       <header class="app-topbar">
         <img src="Animal Race_logo Horizontal.png" alt="Animal Race Transporte de Pets" class="topbar-logo" />
         <div>
-          <h1>Agendar corrida PET</h1>
-          <p>Fluxo rápido no estilo app de mobilidade</p>
+          <h1>Serviço de transporte de PETS</h1>
+          <p>Agende sua viagem com toda comodidade para você e seu Pet!</p>
         </div>
       </header>
 
@@ -76,7 +76,21 @@
           <label for="whatsapp">Contato (WhatsApp)</label>
           <input id="whatsapp" name="whatsapp" type="tel" placeholder="Ex: (11) 99999-0000" required />
 
-          <label for="pets">Observações da corrida</label>
+          <label for="tripPurpose">Objetivo da corrida</label>
+          <select id="tripPurpose" name="tripPurpose" required>
+            <option value="">Selecione</option>
+            <option>Passeio</option>
+            <option>Emergência / Exames clínicos</option>
+            <option>Viagem-Feriado / fim de semana</option>
+            <option>Outros</option>
+          </select>
+
+          <div id="purpose-other-wrap" class="hidden">
+            <label for="purposeOther">Descreva (opcional)</label>
+            <input id="purposeOther" name="purposeOther" type="text" placeholder="Ex: transferência entre residências" />
+          </div>
+
+          <label for="pets">Detalhes da corrida</label>
           <textarea id="pets" name="pets" rows="3" placeholder="Ex: cão em caixa de transporte"></textarea>
         </section>
 

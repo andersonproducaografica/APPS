@@ -18,6 +18,19 @@ const cpfInput = document.querySelector('#cpf');
 const PRICE_PER_KM = 3.5;
 const MIN_FARE_ONE_WAY = 35;
 const ROUND_TRIP_BASE_FARE = 55;
+const RJ_VIEWBOX = '-44.89,-20.76,-40.96,-23.37';
+const RJ_REGIONAL_HINTS = [
+  'Rio de Janeiro, RJ',
+  'Niterói, RJ',
+  'São Gonçalo, RJ',
+  'Duque de Caxias, RJ',
+  'Nova Iguaçu, RJ',
+  'Região Metropolitana do Rio de Janeiro, RJ',
+  'Região dos Lagos, RJ',
+  'Região Serrana, RJ',
+  'Costa Verde, RJ'
+];
+
 
 function parsePetCount(text) {
   const numbers = text.match(/\d+/g);
@@ -143,21 +156,29 @@ function buildAddressQueries(street, zip, zipInfo) {
   const cityState = zipInfo?.city && zipInfo?.state ? `${zipInfo.city} ${zipInfo.state}` : '';
   const neighborhood = zipInfo?.neighborhood || '';
 
-  return [
+  const baseQueries = [
     `${street}, ${cleanZip}, Brasil`,
     `${street}, ${neighborhood}, ${cityState}, Brasil`,
     `${street}, ${cityState}, Brasil`,
+    `${street}, Rio de Janeiro, RJ, Brasil`,
     `${street}, Brasil`
   ].filter(Boolean);
+
+  const regionalQueries = RJ_REGIONAL_HINTS.map((hint) => `${street}, ${hint}, Brasil`);
+  return [...new Set([...baseQueries, ...regionalQueries])];
 }
 
-async function geocodeByNominatim(query) {
+async function geocodeByNominatim(query, rjOnly = false) {
   const url = new URL('https://nominatim.openstreetmap.org/search');
   url.searchParams.set('q', query);
   url.searchParams.set('format', 'jsonv2');
   url.searchParams.set('limit', '1');
   url.searchParams.set('countrycodes', 'br');
   url.searchParams.set('addressdetails', '1');
+  if (rjOnly) {
+    url.searchParams.set('viewbox', RJ_VIEWBOX);
+    url.searchParams.set('bounded', '1');
+  }
 
   const data = await fetchJson(url.toString());
   if (!data || !data.length) return null;
@@ -194,6 +215,8 @@ async function fetchAddressSuggestions(query) {
   url.searchParams.set('limit', '5');
   url.searchParams.set('countrycodes', 'br');
   url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('viewbox', RJ_VIEWBOX);
+  url.searchParams.set('bounded', '1');
 
   const data = await fetchJson(url.toString());
   if (!data || !Array.isArray(data)) return [];
@@ -261,6 +284,9 @@ async function geocodeAddressWithFallback(street, zip) {
   const queries = buildAddressQueries(street, zip, zipInfo);
 
   for (const query of queries) {
+    const nominatimRjResult = await geocodeByNominatim(query, true);
+    if (nominatimRjResult) return nominatimRjResult;
+
     const nominatimResult = await geocodeByNominatim(query);
     if (nominatimResult) return nominatimResult;
 
@@ -417,6 +443,7 @@ form.addEventListener('submit', async (event) => {
     const estimatedFare = roundTrip
       ? ROUND_TRIP_BASE_FARE + distanceFare + petSurcharge + waitSurcharge
       : Math.max(MIN_FARE_ONE_WAY, distanceFare + petSurcharge + oneWayLongDistanceSurcharge);
+    const isLongDistanceConsult = chargedDistanceKm > 150;
 
     const tripLabel = roundTrip ? 'Ida e volta' : 'Só ida';
     const purposeText = tripPurpose === 'Outros' ? `Outros (${purposeOther || 'não detalhado'})` : tripPurpose;
@@ -449,8 +476,7 @@ form.addEventListener('submit', async (event) => {
           ]),
       `Finalidade da corrida: ${purposeText}`,
       `Detalhes da corrida: ${rideNotes || 'Não informado'}`,
-      ...(oneWayLongDistanceSurcharge ? [`Adicional retorno estimado (>50km): ${formatCurrency(oneWayLongDistanceSurcharge)}`] : []),
-      `Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`
+      ...(isLongDistanceConsult ? ['Valor da corrida: *Sob consulta (distância acima de 150 km)*'] : [`Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`])
     ].join('\n');
 
     const whatsappLink = `https://wa.me/5521979447509?text=${encodeURIComponent(whatsappMessage)}`;
@@ -465,12 +491,11 @@ form.addEventListener('submit', async (event) => {
         ${roundTrip ? `<li><strong>Data/Hora (volta):</strong> ${formattedReturnDate} às ${returnTime}</li>` : ''}
         <li><strong>Trecho:</strong> ${tripLabel}</li>
         <li><strong>Finalidade da corrida:</strong> ${purposeText}</li>
-        <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
+        ${!isLongDistanceConsult ? `<li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>` : ''}
         ${rideNotes ? `<li><strong>Detalhes da corrida:</strong> ${rideNotes}</li>` : ''}
-        ${oneWayLongDistanceSurcharge ? `<li><strong>Adicional retorno estimado (>50km):</strong> ${formatCurrency(oneWayLongDistanceSurcharge)}</li>` : ''}
-        <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
+        ${!isLongDistanceConsult ? `<li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>` : ''}
       </ul>
-      <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Agendar corrida</a>
+      <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">${isLongDistanceConsult ? 'Consultar valor da corrida' : 'Agendar corrida'}</a>
       <p><small>Cálculo de distância realizado via serviços públicos de geolocalização.</small></p>
     `);
   } catch (error) {

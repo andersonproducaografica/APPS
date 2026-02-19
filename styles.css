@@ -1,19 +1,16 @@
 :root {
-  color-scheme: light;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --bg: #fcb900;
   --card: #ffffff;
   --text: #1c2b42;
-  --muted: #52607a;
+  --muted: #5f6f8c;
   --primary: #3867ff;
   --primary-hover: #2a53d4;
   --ok: #0f7b44;
   --warn: #955f00;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -21,50 +18,63 @@ body {
   color: var(--text);
 }
 
-.container {
-  max-width: 860px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  display: grid;
-  gap: 1rem;
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 0.8rem 0.8rem 5.5rem;
 }
 
+.app-topbar {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  box-shadow: 0 8px 22px rgba(28, 43, 66, 0.12);
+  margin-bottom: 0.8rem;
+}
+
+.topbar-logo {
+  width: 92px;
+  height: auto;
+  border-radius: 8px;
+}
+
+.app-topbar h1 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.app-topbar p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.mobile-form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.form-section,
 .card {
   background: var(--card);
-  border-radius: 14px;
-  box-shadow: 0 8px 28px rgba(33, 66, 120, 0.12);
-  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(28, 43, 66, 0.12);
+  padding: 0.9rem;
 }
 
-
-.hero-header {
-  margin-bottom: 1rem;
-}
-
-.hero-image {
-  width: 50%;
-  max-width: 420px;
-  height: auto;
-  border-radius: 12px;
-  border: 1px solid #d9d9d9;
-  display: block;
-  margin: 0 auto;
-}
-
-h1 {
-  margin-top: 0;
-  margin-bottom: 0.4rem;
-}
-
-.subtitle {
-  margin-top: 0;
-  color: var(--muted);
+.form-section h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.98rem;
 }
 
 label,
 legend {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 input,
@@ -77,39 +87,23 @@ button {
 input,
 textarea {
   margin-top: 0.4rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.8rem;
   border: 1px solid #d0d8eb;
   border-radius: 10px;
-  padding: 0.65rem 0.75rem;
-}
-
-input:focus,
-textarea:focus {
-  outline: 3px solid #cdd8ff;
-  border-color: #94aaf7;
+  padding: 0.7rem 0.75rem;
+  background: #fff;
 }
 
 .grid-2 {
   display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-
-.grid-3 {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-
-.section-title {
-  margin: 0.3rem 0 0.4rem;
-  font-size: 1rem;
+  gap: 0.6rem;
+  grid-template-columns: 1fr 1fr;
 }
 
 .trip-type {
   border: 1px solid #d0d8eb;
   border-radius: 10px;
-  margin: 0 0 1rem;
+  margin: 0 0 0.8rem;
   padding: 0.7rem;
 }
 
@@ -124,55 +118,42 @@ textarea:focus {
   margin-right: 0.35rem;
 }
 
-button {
+.submit-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffffee;
+  backdrop-filter: blur(4px);
+  border-top: 1px solid #d5deef;
+  padding: 0.7rem 0.9rem calc(0.7rem + env(safe-area-inset-bottom));
+}
+
+.submit-wrap button {
   border: 0;
   background: var(--primary);
   color: #fff;
-  border-radius: 10px;
-  padding: 0.8rem 1rem;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-button:hover {
-  background: var(--primary-hover);
-}
-
-.result h2 {
-  margin-top: 0;
-}
-
-.status-ok {
-  color: var(--ok);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
   font-weight: 700;
 }
 
-.status-warn {
-  color: var(--warn);
-  font-weight: 700;
-}
+.submit-wrap button:hover { background: var(--primary-hover); }
 
-.result-list {
-  margin: 0.6rem 0;
-  padding-left: 1rem;
-}
-
-.hidden {
-  display: none;
-}
+.result h2 { margin-top: 0; }
+.status-ok { color: var(--ok); font-weight: 700; }
+.status-warn { color: var(--warn); font-weight: 700; }
+.result-list { margin: 0.6rem 0; padding-left: 1rem; }
+.hidden { display: none !important; }
 
 .whatsapp-cta {
   display: inline-block;
   margin-top: 0.4rem;
   margin-bottom: 0.6rem;
   background: #25d366;
-  color: #ffffff;
+  color: #fff;
   text-decoration: none;
   font-weight: 700;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-}
-
-.whatsapp-cta:hover {
-  background: #1fb458;
 }

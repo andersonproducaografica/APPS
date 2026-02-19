@@ -14,6 +14,7 @@ const tripPurposeSelect = document.querySelector('#tripPurpose');
 const purposeOtherWrap = document.querySelector('#purpose-other-wrap');
 const purposeOtherInput = document.querySelector('#purposeOther');
 const cpfInput = document.querySelector('#cpf');
+const submitWrap = document.querySelector('.submit-wrap');
 
 const PRICE_PER_KM = 3.5;
 const MIN_FARE_ONE_WAY = 35;
@@ -372,6 +373,10 @@ function showResult(content) {
   resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function setConsultButtonVisibility(visible) {
+  submitWrap.classList.toggle('hidden', !visible);
+}
+
 setupAddressAutocomplete(originStreetInput, originStreetSuggestions);
 setupAddressAutocomplete(destinationStreetInput, destinationStreetSuggestions);
 
@@ -392,6 +397,7 @@ cpfInput.addEventListener('input', () => {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  setConsultButtonVisibility(false);
 
   const formData = new FormData(form);
   const fullName = formData.get('fullName').trim();
@@ -496,13 +502,29 @@ form.addEventListener('submit', async (event) => {
         ${!isLongDistanceConsult ? `<li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>` : ''}
       </ul>
       <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">${isLongDistanceConsult ? 'Consultar valor da corrida' : 'Agendar corrida'}</a>
+      <button type="button" class="new-search-btn" id="new-search-btn">Fazer nova consulta</button>
       <p><small>Cálculo de distância realizado via serviços públicos de geolocalização.</small></p>
     `);
+
+    document.querySelector('#new-search-btn')?.addEventListener('click', () => {
+      resultContainer.classList.add('hidden');
+      resultContainer.innerHTML = '';
+      setConsultButtonVisibility(true);
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   } catch (error) {
     showResult(`
       <h2>Não foi possível gerar a cotação agora</h2>
       <p class="status-warn">${error.message}</p>
       <p>Verifique os dados informados e tente novamente.</p>
+      <button type="button" class="new-search-btn" id="new-search-btn">Fazer nova consulta</button>
     `);
+
+    document.querySelector('#new-search-btn')?.addEventListener('click', () => {
+      resultContainer.classList.add('hidden');
+      resultContainer.innerHTML = '';
+      setConsultButtonVisibility(true);
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 });

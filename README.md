@@ -7,8 +7,8 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
 - Formulário com os dados solicitados:
   - Autocomplete (predição) para endereço de origem e destino com preenchimento automático de CEP quando disponível
   - Nome completo, CPF e WhatsApp
-  - Origem (endereço e CEP)
-  - Destino (endereço e CEP)
+  - Origem (endereço, CEP e cidade)
+  - Destino (endereço, CEP e cidade)
   - Data e hora
   - Finalidade da corrida (menu com opções + campo opcional para "Outros")
   - Detalhes da corrida (campo opcional)
@@ -45,6 +45,8 @@ Depois abra: <http://localhost:8000>
 
 
 ## Layout mobile-first
+
+- Rodapé fixo com crédito: `Desenvolvido por: Anderson Ramos`.
 
 - Interface organizada em etapas (Rota, Tipo/Horário, Passageiro).
 - Botão principal fixo no rodapé, no padrão de apps de transporte.

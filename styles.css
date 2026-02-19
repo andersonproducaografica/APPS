@@ -28,7 +28,7 @@ body {
 .app-topbar {
   background: var(--card);
   border-radius: 16px;
-  padding: 0.8rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -37,20 +37,20 @@ body {
 }
 
 .topbar-logo {
-  width: 92px;
+  width: 108px;
   height: auto;
   border-radius: 8px;
 }
 
 .app-topbar h1 {
-  font-size: 1rem;
+  font-size: 1.25rem;
   margin: 0;
 }
 
 .app-topbar p {
   margin: 0.2rem 0 0;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.92rem;
 }
 
 .mobile-form {
@@ -79,13 +79,15 @@ legend {
 
 input,
 textarea,
+select,
 button {
   width: 100%;
   font: inherit;
 }
 
 input,
-textarea {
+textarea,
+select {
   margin-top: 0.4rem;
   margin-bottom: 0.8rem;
   border: 1px solid #d0d8eb;

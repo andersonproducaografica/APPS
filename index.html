@@ -24,15 +24,31 @@
           <input id="originStreet" name="originStreet" type="text" placeholder="Rua e número" list="originStreetSuggestions" autocomplete="off" required />
           <datalist id="originStreetSuggestions"></datalist>
 
-          <label for="originZip">CEP origem</label>
-          <input id="originZip" name="originZip" type="text" placeholder="Ex: 21020-080" required />
+          <div class="grid-2 address-meta-row">
+            <div>
+              <label for="originZip">CEP origem</label>
+              <input id="originZip" name="originZip" type="text" placeholder="Ex: 21020-080" required />
+            </div>
+            <div>
+              <label for="originCity">Cidade origem</label>
+              <input id="originCity" name="originCity" type="text" placeholder="Ex: Rio de Janeiro" required />
+            </div>
+          </div>
 
           <label for="destinationStreet">Destino</label>
           <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Rua e número" list="destinationStreetSuggestions" autocomplete="off" required />
           <datalist id="destinationStreetSuggestions"></datalist>
 
-          <label for="destinationZip">CEP destino</label>
-          <input id="destinationZip" name="destinationZip" type="text" placeholder="Ex: 21011-660" required />
+          <div class="grid-2 address-meta-row">
+            <div>
+              <label for="destinationZip">CEP destino</label>
+              <input id="destinationZip" name="destinationZip" type="text" placeholder="Ex: 21011-660" required />
+            </div>
+            <div>
+              <label for="destinationCity">Cidade destino</label>
+              <input id="destinationCity" name="destinationCity" type="text" placeholder="Ex: Niterói" required />
+            </div>
+          </div>
         </section>
 
         <section class="form-section">
@@ -103,6 +119,7 @@
       </form>
 
       <section class="card result hidden" id="result"></section>
+      <footer class="app-footer">Desenvolvido por: Anderson Ramos</footer>
     </main>
 
     <script src="script.js"></script>

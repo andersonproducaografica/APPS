@@ -7,49 +7,36 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="container">
-      <section class="card">
-        <header class="hero-header">
-          <img src="Animal Race_logo Horizontal.png" alt="Animal Race Transporte de Pets" class="hero-image" />
-        </header>
+    <main class="app-shell">
+      <header class="app-topbar">
+        <img src="Animal Race_logo Horizontal.png" alt="Animal Race Transporte de Pets" class="topbar-logo" />
+        <div>
+          <h1>Agendar corrida PET</h1>
+          <p>Fluxo rápido no estilo app de mobilidade</p>
+        </div>
+      </header>
 
-        <h1>Agendamento de Corrida para PET</h1>
-        <p class="subtitle">
-          Informe os dados da viagem para validar disponibilidade do motorista e receber uma cotação estimada.
-        </p>
+      <form id="booking-form" class="mobile-form">
+        <section class="form-section">
+          <h2>1. Rota da corrida</h2>
 
-        <form id="booking-form">
-          <label for="fullName">Nome completo</label>
-          <input id="fullName" name="fullName" type="text" placeholder="Ex: Maria Silva" required />
+          <label for="originStreet">Origem</label>
+          <input id="originStreet" name="originStreet" type="text" placeholder="Rua e número" list="originStreetSuggestions" autocomplete="off" required />
+          <datalist id="originStreetSuggestions"></datalist>
 
-          <label for="whatsapp">Contato (WhatsApp)</label>
-          <input id="whatsapp" name="whatsapp" type="tel" placeholder="Ex: (11) 99999-0000" required />
+          <label for="originZip">CEP origem</label>
+          <input id="originZip" name="originZip" type="text" placeholder="Ex: 21020-080" required />
 
-          <h3 class="section-title">Origem</h3>
-          <div class="grid-3">
-            <div>
-              <label for="originStreet">Endereço</label>
-              <input id="originStreet" name="originStreet" type="text" placeholder="Ex: Rua das Flores, 120" list="originStreetSuggestions" autocomplete="off" required />
-              <datalist id="originStreetSuggestions"></datalist>
-            </div>
-            <div>
-              <label for="originZip">CEP</label>
-              <input id="originZip" name="originZip" type="text" placeholder="Ex: 20031-040" required />
-            </div>
-          </div>
+          <label for="destinationStreet">Destino</label>
+          <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Rua e número" list="destinationStreetSuggestions" autocomplete="off" required />
+          <datalist id="destinationStreetSuggestions"></datalist>
 
-          <h3 class="section-title">Destino</h3>
-          <div class="grid-3">
-            <div>
-              <label for="destinationStreet">Endereço</label>
-              <input id="destinationStreet" name="destinationStreet" type="text" placeholder="Ex: Av. Central, 530" list="destinationStreetSuggestions" autocomplete="off" required />
-              <datalist id="destinationStreetSuggestions"></datalist>
-            </div>
-            <div>
-              <label for="destinationZip">CEP</label>
-              <input id="destinationZip" name="destinationZip" type="text" placeholder="Ex: 20550-013" required />
-            </div>
-          </div>
+          <label for="destinationZip">CEP destino</label>
+          <input id="destinationZip" name="destinationZip" type="text" placeholder="Ex: 21011-660" required />
+        </section>
+
+        <section class="form-section">
+          <h2>2. Tipo e horário</h2>
 
           <fieldset class="trip-type">
             <legend>A viagem será:</legend>
@@ -78,13 +65,25 @@
               <input id="returnTime" name="returnTime" type="time" />
             </div>
           </div>
+        </section>
+
+        <section class="form-section">
+          <h2>3. Passageiro e detalhes</h2>
+
+          <label for="fullName">Nome completo</label>
+          <input id="fullName" name="fullName" type="text" placeholder="Ex: Maria Silva" required />
+
+          <label for="whatsapp">Contato (WhatsApp)</label>
+          <input id="whatsapp" name="whatsapp" type="tel" placeholder="Ex: (11) 99999-0000" required />
 
           <label for="pets">Observações da corrida</label>
-          <textarea id="pets" name="pets" rows="4" placeholder="Ex: 2 cães de porte pequeno, 1 gato em caixa de transporte"></textarea>
+          <textarea id="pets" name="pets" rows="3" placeholder="Ex: cão em caixa de transporte"></textarea>
+        </section>
 
+        <div class="submit-wrap">
           <button type="submit">Verificar disponibilidade e cotação</button>
-        </form>
-      </section>
+        </div>
+      </form>
 
       <section class="card result hidden" id="result"></section>
     </main>

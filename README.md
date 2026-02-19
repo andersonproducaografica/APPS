@@ -38,3 +38,10 @@ Depois abra: <http://localhost:8000>
 - Este protótipo depende de internet.
 - APIs públicas podem ter indisponibilidade pontual.
 - O botão de CTA do WhatsApp já abre com as informações da corrida preenchidas na mensagem.
+
+
+## Layout mobile-first
+
+- Interface organizada em etapas (Rota, Tipo/Horário, Passageiro).
+- Botão principal fixo no rodapé, no padrão de apps de transporte.
+- Bloco de retorno (data/hora da volta) exibido apenas para ida e volta.

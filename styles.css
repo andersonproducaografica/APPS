@@ -81,6 +81,18 @@ legend {
   font-size: 0.92rem;
 }
 
+.route-label {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1b2f55;
+  letter-spacing: 0.01em;
+}
+
+.route-label-destination {
+  margin-top: 0.55rem;
+}
+
 input,
 textarea,
 select,
@@ -147,7 +159,12 @@ select {
 .submit-wrap button:hover { background: var(--primary-hover); }
 
 .result {
-  margin-top: 0.55rem;
+  margin-top: 0.8rem;
+}
+
+.result-banner {
+  border: 2px solid #3867ff;
+  background: linear-gradient(180deg, #eef3ff 0%, #ffffff 100%);
 }
 
 .result h2 { margin-top: 0; }

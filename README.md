@@ -41,6 +41,7 @@ Depois abra: <http://localhost:8000>
 - Este protótipo depende de internet.
 - APIs públicas podem ter indisponibilidade pontual.
 - O botão de CTA do WhatsApp já abre com as informações da corrida preenchidas na mensagem.
+- Após o resultado, o botão principal é ocultado e aparece `Fazer nova consulta` abaixo do CTA de WhatsApp.
 
 
 ## Layout mobile-first

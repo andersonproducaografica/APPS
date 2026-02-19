@@ -13,6 +13,7 @@ const roundTripRadios = document.querySelectorAll('input[name="roundTrip"]');
 const tripPurposeSelect = document.querySelector('#tripPurpose');
 const purposeOtherWrap = document.querySelector('#purpose-other-wrap');
 const purposeOtherInput = document.querySelector('#purposeOther');
+const cpfInput = document.querySelector('#cpf');
 
 const PRICE_PER_KM = 3.5;
 const MIN_FARE_ONE_WAY = 35;
@@ -86,17 +87,15 @@ function calculateWaitSurcharge(rideDate, rideTime, returnDate, returnTime) {
   const inbound = new Date(`${returnDate}T${returnTime}`);
   const waitMinutes = Math.floor((inbound - outbound) / 60000);
 
-  if (waitMinutes <= 20) return 0;
-  if (waitMinutes < 60) return 20;
+  return waitMinutes < 80 ? 20 : 0;
+}
 
-  const extraMinutesAfterFirstHour = Math.max(0, waitMinutes - 60);
-  const blocksOfTen = Math.ceil(extraMinutesAfterFirstHour / 10);
-
-  if (waitMinutes < 180) {
-    return 20 + blocksOfTen * 4;
-  }
-
-  return 20 + blocksOfTen * 3;
+function maskCpf(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  return digits
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 }
 
 function validateReturnAfterOutbound(rideDate, rideTime, returnDate, returnTime) {
@@ -200,22 +199,56 @@ async function fetchAddressSuggestions(query) {
   if (!data || !Array.isArray(data)) return [];
 
   const suggestions = data
-    .map((item) => item.address?.road || item.address?.pedestrian || item.name || item.display_name?.split(',')[0] || '')
-    .map((street) => street.replace(/\d+/g, '').replace(/\s{2,}/g, ' ').trim())
-    .filter(Boolean);
+    .map((item) => {
+      const street = item.address?.road || item.address?.pedestrian || item.name || item.display_name?.split(',')[0] || '';
+      const cleanedStreet = street.replace(/\d+/g, '').replace(/\s{2,}/g, ' ').trim();
+      const zip = normalizeZip(item.address?.postcode || '');
+      return {
+        street: cleanedStreet,
+        zip
+      };
+    })
+    .filter((item) => item.street);
 
-  return [...new Set(suggestions)].slice(0, 5);
+  const unique = [];
+  const seen = new Set();
+  for (const item of suggestions) {
+    if (seen.has(item.street)) continue;
+    seen.add(item.street);
+    unique.push(item);
+    if (unique.length === 5) break;
+  }
+
+  return unique;
 }
 
 function setupAddressAutocomplete(inputEl, datalistEl) {
+  const streetZipMap = new Map();
+  const zipInput = inputEl.id === 'originStreet'
+    ? document.querySelector('#originZip')
+    : document.querySelector('#destinationZip');
+
   let debounceTimer;
 
   inputEl.addEventListener('input', () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       const suggestions = await fetchAddressSuggestions(inputEl.value);
-      datalistEl.innerHTML = suggestions.map((text) => `<option value="${text.replace(/"/g, '&quot;')}"></option>`).join('');
+      streetZipMap.clear();
+      suggestions.forEach((item) => {
+        if (item.zip?.length === 8) {
+          streetZipMap.set(item.street.toLowerCase(), item.zip);
+        }
+      });
+      datalistEl.innerHTML = suggestions.map((item) => `<option value="${item.street.replace(/"/g, '&quot;')}"></option>`).join('');
     }, 320);
+  });
+
+  inputEl.addEventListener('change', () => {
+    const zipFromStreet = streetZipMap.get(inputEl.value.trim().toLowerCase());
+    if (zipFromStreet && zipInput) {
+      zipInput.value = zipFromStreet.replace(/(\d{5})(\d{3})/, '$1-$2');
+    }
   });
 
   inputEl.addEventListener('blur', () => {
@@ -327,11 +360,16 @@ toggleReturnScheduleFields();
 togglePurposeOtherField();
 updateDateAndTimeLimits();
 
+cpfInput.addEventListener('input', () => {
+  cpfInput.value = maskCpf(cpfInput.value);
+});
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const formData = new FormData(form);
   const fullName = formData.get('fullName').trim();
+  const cpf = formData.get('cpf').trim();
   const whatsapp = formData.get('whatsapp').trim();
   const origin = {
     street: formData.get('originStreet').trim(),
@@ -390,6 +428,7 @@ form.addEventListener('submit', async (event) => {
     const whatsappMessage = [
       '*Olá,*',
       `Me chamo, *${fullName}*.` ,
+      `CPF: ${cpf}`,
       '*Gostaria de agendar uma corrida*',
       '',
       ...(roundTrip
@@ -408,9 +447,9 @@ form.addEventListener('submit', async (event) => {
             `Destino: ${destinationText}`,
             `Trecho: ${tripLabel}`
           ]),
+      `Finalidade da corrida: ${purposeText}`,
       `Detalhes da corrida: ${rideNotes || 'Não informado'}`,
       ...(oneWayLongDistanceSurcharge ? [`Adicional retorno estimado (>50km): ${formatCurrency(oneWayLongDistanceSurcharge)}`] : []),
-      ...(waitSurcharge ? [`Adicional de espera: ${formatCurrency(waitSurcharge)}`] : []),
       `Valor estimado da corrida: *${formatCurrency(estimatedFare)}*`
     ].join('\n');
 
@@ -418,18 +457,17 @@ form.addEventListener('submit', async (event) => {
 
     showResult(`
       <h2>Resultado da consulta</h2>
-      <p class="status-ok">Confira os dados da corrida</p>
       <ul class="result-list">
         <li><strong>Cliente:</strong> ${fullName}</li>
+        <li><strong>CPF:</strong> ${cpf}</li>
         <li><strong>WhatsApp:</strong> ${whatsapp}</li>
         <li><strong>Data/Hora (ida):</strong> ${formattedDate} às ${time}</li>
         ${roundTrip ? `<li><strong>Data/Hora (volta):</strong> ${formattedReturnDate} às ${returnTime}</li>` : ''}
         <li><strong>Trecho:</strong> ${tripLabel}</li>
-        <li><strong>Objetivo da corrida:</strong> ${purposeText}</li>
+        <li><strong>Finalidade da corrida:</strong> ${purposeText}</li>
         <li><strong>Distância cobrada:</strong> ${chargedDistanceKm.toFixed(2)} km</li>
         ${rideNotes ? `<li><strong>Detalhes da corrida:</strong> ${rideNotes}</li>` : ''}
         ${oneWayLongDistanceSurcharge ? `<li><strong>Adicional retorno estimado (>50km):</strong> ${formatCurrency(oneWayLongDistanceSurcharge)}</li>` : ''}
-        ${waitSurcharge ? `<li><strong>Adicional de espera:</strong> ${formatCurrency(waitSurcharge)}</li>` : ''}
         <li><strong>Valor estimado da corrida:</strong> ${formatCurrency(estimatedFare)}</li>
       </ul>
       <a class="whatsapp-cta" href="${whatsappLink}" target="_blank" rel="noopener noreferrer">Agendar corrida</a>

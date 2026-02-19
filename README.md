@@ -5,12 +5,12 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
 ## O que este esboço cobre
 
 - Formulário com os dados solicitados:
-  - Autocomplete (predição) para endereço de origem e destino
-  - Nome completo e WhatsApp
+  - Autocomplete (predição) para endereço de origem e destino com preenchimento automático de CEP quando disponível
+  - Nome completo, CPF e WhatsApp
   - Origem (endereço e CEP)
   - Destino (endereço e CEP)
   - Data e hora
-  - Objetivo da corrida (menu com opções + campo opcional para "Outros")
+  - Finalidade da corrida (menu com opções + campo opcional para "Outros")
   - Detalhes da corrida (campo opcional)
   - Opção de ida ou ida e volta
 - Validação de agenda:
@@ -26,10 +26,7 @@ Protótipo simples de aplicativo web para **agendamento de corridas para transpo
   - **Valor mínimo de corrida (só ida): R$ 35,00**
   - **Só ida acima de 50 km:** adicional de R$ 0,50 por km (retorno estimado)
   - **Tarifa base para ida e volta: R$ 55,00 + km dos percursos**
-  - **Ida e volta (espera):**
-    - > 20 min e < 1h: +R$ 20,00
-    - > 1h e < 3h: +R$ 20,00 + R$ 4,00 por bloco de 10 min
-    - > 3h: +R$ 20,00 + R$ 3,00 por bloco de 10 min
+  - **Ida e volta (espera):** se o intervalo entre ida e volta for inferior a 1h20, aplica +R$ 20,00 fixo; acima desse tempo não há adicional de espera
 
 ## Como rodar
 
